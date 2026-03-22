@@ -15,7 +15,7 @@
 
 // Structure to hold command-line arguments
 struct Args {
-  int seconds = 5;
+  int seconds = 3;
   bool stress = false; 
 };
 
@@ -34,6 +34,8 @@ static Args parse_args(int argc, char** argv) {
 
 int main(int argc, char** argv) {
   auto args = parse_args(argc, argv);
+
+  spdlog::info("Program started with seconds={} and stress={}", args.seconds, args.stress); // Debugging log
 
   // Set up asynchronous logging to a file
   auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("output.log", true);
@@ -61,17 +63,23 @@ int main(int argc, char** argv) {
   std::thread t4([&] { shutdown::run(stop, args.stress); });   // Thread for shutdown
   std::thread t5([&] { sink_callback::run(stop, args.stress); }); // Thread for sink_callback
 
+  spdlog::info("Launching threads"); // Debugging log
+
   // Run a heartbeat loop for the specified duration
   auto end = std::chrono::steady_clock::now() + std::chrono::seconds(args.seconds);
+  spdlog::info("Entering heartbeat loop"); // Debugging log
   while (std::chrono::steady_clock::now() < end) {
-    spdlog::info("heartbeat"); 
+    // spdlog::info("heartbeat"); 
+    spdlog::info("heartbeat, stop value: {}", stop.load()); // Debugging log
     std::this_thread::sleep_for(std::chrono::milliseconds(50)); 
     level5.print(); // Print level 5 logs
   }
+  spdlog::info("Exiting heartbeat loop"); // Debugging log
 
   // Signal threads to stop and wait for their completion
   stop.store(true);
   t1.join(); t2.join(); t3.join(); t4.join(); t5.join();
+  spdlog::info("All threads joined"); // Debugging log
 
   // Flush the async buffer to ensure output.log gets the last messages
   logger->flush();

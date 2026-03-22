@@ -1,4 +1,3 @@
-
 #pragma once
 #include <spdlog/spdlog.h>
 #include <atomic>
@@ -6,23 +5,29 @@
 
 namespace shutdown {
 inline void run(std::atomic<bool>& stop, bool stress) {
-  spdlog::logger* raw = spdlog::default_logger_raw();
 
   // Launch thread
   std::thread t([&] {
-    while (!stop.load()) raw->info("shutdown now");
+    while (!stop.load()) {
+      // Removed repetitive logging
+      std::this_thread::yield(); // Yield instead of sleeping to reduce CPU usage
+    }
   });
 
   if (stress) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
-  stop.store(true);
 
   // Fix: Wait for the thread to actually finish
   if (t.joinable()) {
     t.join();
   }
+
+  // stop.store(true);
+
+  // Log shutdown now only once
+  spdlog::info("shutdown now");
 
   // Clean up global resources
   if (stress) {

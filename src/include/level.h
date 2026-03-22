@@ -31,7 +31,7 @@ inline void run(std::atomic<bool>& stop, bool) {
     while (!stop.load()) {
       int number = g_level.load(std::memory_order_relaxed);
       if (number & 1) spdlog::info("odd " + std::to_string(number));
-      else spdlog::debug("even");
+      else spdlog::info("even " + std::to_string(number));
     }
   });
   w.join();
